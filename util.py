@@ -8,6 +8,7 @@ import urllib2
 import urlparse
 import threading
 import feedparser
+from HTMLParser import HTMLParser
 from htmlentitydefs import name2codepoint
 from settings import settings
 
@@ -75,13 +76,75 @@ def abspath(path):
     path = os.path.abspath(path)
     path = 'file:///%s' % path.replace('\\', '/')
     return path
+
+def unescHTMLSpcChr(str):
+    return HTMLParser().unescape(str)
+
+def unescapeRSSObject(fpDict):
+    '''
+    This function tries to find all human readable
+    strings in dict, that has been returned by feedparser
+    and if string is in dict, replaces it with HTML
+    escaped symbols.
+    '''
+
+    if 'author' in fpDict:
+        fpDict['author'] = unescHTMLSpcChr(fpDict['author'])
+
+    if 'author_detail' in fpDict:
+        if 'name' in fpDict['author_detail']:
+            fpDict['author_detail']['name'] = unescHTMLSpcChr(fpDict['author_detail']['name'])
+
+    if 'comments' in fpDict:
+        fpDict['comments'] = unescHTMLSpcChr(fpDict['comments'])
+
+    if 'content' in fpDict:
+        fpDict['content'] = unescHTMLSpcChr(fpDict['content'])
+
+    if 'contributors' in fpDict:
+        fpDict['contributors'] = unescHTMLSpcChr(fpDict['contributors'])
+
+    if 'summary' in fpDict:
+        fpDict['summary'] = unescHTMLSpcChr(fpDict['summary'])
+
+    if 'summary_detail' in fpDict:
+        if 'value' in fpDict['summary_detail']:
+            fpDict['summary_detail']['value'] = unescHTMLSpcChr(fpDict['summary_detail']['value'])
+
+    if 'summary_detail' in fpDict:
+        if 'value' in fpDict['summary_detail']:
+            fpDict['summary_detail']['value'] = unescHTMLSpcChr(fpDict['summary_detail']['value'])
+
+    if 'tags' in fpDict:
+        for index, tag in enumerate(fpDict['tags']):
+            if 'term' in tag:
+                fpDict['tags'][index]['term'] = unescHTMLSpcChr(fpDict['tags'][index]['term'])
+            if 'label' in tag:
+                fpDict['tags'][index]['label'] = unescHTMLSpcChr(fpDict['tags'][index]['label'])
+
+    if 'title' in fpDict:
+        fpDict['title'] = unescHTMLSpcChr(fpDict['title'])
+
+    if 'title_detail' in fpDict:
+        if 'value' in fpDict['title_detail']:
+            fpDict['title_detail']['value'] = unescHTMLSpcChr(fpDict['title_detail']['value'])
+
+    return fpDict
+
+def decodeRSS(rss):
+    for index, record in enumerate(rss):
+       rss[index] = unescapeRSSObject(record)
+    return rss
     
 def parse(url, username=None, password=None, etag=None, modified=None):
     agent = settings.USER_AGENT
     handlers = [get_proxy()]
     if username and password:
         url = insert_credentials(url, username, password)
-    return feedparser.parse(url, etag=etag, modified=modified, agent=agent, handlers=handlers)
+    response = feedparser.parse(url, etag=etag, modified=modified, agent=agent, handlers=handlers)
+    if "entries" in response:
+        response["entries"] = decodeRSS(response["entries"])
+    return response
     
 def is_valid_feed(data):
     entries = get(data, 'entries', [])
