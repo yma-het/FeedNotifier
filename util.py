@@ -9,6 +9,7 @@ import urlparse
 import threading
 import feedparser
 from HTMLParser import HTMLParser
+import operator
 from htmlentitydefs import name2codepoint
 from settings import settings
 
@@ -80,6 +81,22 @@ def abspath(path):
 def unescHTMLSpcChr(str):
     return HTMLParser().unescape(str)
 
+def keyExistsAndNotNull(fpElement, *keys):
+    if len(keys) == 1:
+        if keys[0] in fpElement:
+            if fpElement[keys[0]]:
+                return True
+        return False
+    if  len(keys) == 2:
+        if keys[0] in fpElement:
+            if fpElement[keys[0]]:
+                if keys[1] in fpElement[keys[0]]:
+                    if fpElement[keys[0]][keys[1]]:
+                        return True
+        return False
+    else:
+        raise Exception("Unknown signature of doIfExists() call!")
+
 def unescapeRSSObject(fpDict):
     '''
     This function tries to find all human readable
@@ -87,48 +104,32 @@ def unescapeRSSObject(fpDict):
     and if string is in dict, replaces it with HTML
     escaped symbols.
     '''
+    unescapeToVar = lambda item, key: operator.setitem(item, key, unescHTMLSpcChr(item[key]))
 
-    if 'author' in fpDict:
-        fpDict['author'] = unescHTMLSpcChr(fpDict['author'])
-
-    if 'author_detail' in fpDict:
-        if 'name' in fpDict['author_detail']:
-            fpDict['author_detail']['name'] = unescHTMLSpcChr(fpDict['author_detail']['name'])
-
-    if 'comments' in fpDict:
-        fpDict['comments'] = unescHTMLSpcChr(fpDict['comments'])
-
-    if 'content' in fpDict:
-        fpDict['content'] = unescHTMLSpcChr(fpDict['content'])
-
-    if 'contributors' in fpDict:
-        fpDict['contributors'] = unescHTMLSpcChr(fpDict['contributors'])
-
-    if 'summary' in fpDict:
-        fpDict['summary'] = unescHTMLSpcChr(fpDict['summary'])
-
-    if 'summary_detail' in fpDict:
-        if 'value' in fpDict['summary_detail']:
-            fpDict['summary_detail']['value'] = unescHTMLSpcChr(fpDict['summary_detail']['value'])
-
-    if 'summary_detail' in fpDict:
-        if 'value' in fpDict['summary_detail']:
-            fpDict['summary_detail']['value'] = unescHTMLSpcChr(fpDict['summary_detail']['value'])
-
-    if 'tags' in fpDict:
+    if keyExistsAndNotNull(fpDict, 'author'):
+        unescapeToVar(fpDict, 'author')
+    if keyExistsAndNotNull(fpDict, 'author_detail', 'name'):
+        unescapeToVar(fpDict['author_detail'], 'name')
+    if keyExistsAndNotNull(fpDict, 'comments'):
+        unescapeToVar(fpDict, 'comments')
+    if keyExistsAndNotNull(fpDict, 'content'):
+        unescapeToVar(fpDict, 'content')
+    if keyExistsAndNotNull(fpDict, 'contributors'):
+        unescapeToVar(fpDict, 'contributors')
+    if keyExistsAndNotNull(fpDict, 'summary'):
+        unescapeToVar(fpDict, 'summary')
+    if keyExistsAndNotNull(fpDict, 'summary_detail', 'value'):
+        unescapeToVar(fpDict['summary_detail'], 'value')
+    if keyExistsAndNotNull(fpDict, 'tags'):
         for index, tag in enumerate(fpDict['tags']):
-            if 'term' in tag:
-                fpDict['tags'][index]['term'] = unescHTMLSpcChr(fpDict['tags'][index]['term'])
-            if 'label' in tag:
-                fpDict['tags'][index]['label'] = unescHTMLSpcChr(fpDict['tags'][index]['label'])
-
-    if 'title' in fpDict:
-        fpDict['title'] = unescHTMLSpcChr(fpDict['title'])
-
-    if 'title_detail' in fpDict:
-        if 'value' in fpDict['title_detail']:
-            fpDict['title_detail']['value'] = unescHTMLSpcChr(fpDict['title_detail']['value'])
-
+            if keyExistsAndNotNull(tag, 'term'):
+                unescapeToVar(fpDict['tags'][index], 'term')
+            if keyExistsAndNotNull(tag, 'label'):
+                unescapeToVar(fpDict['tags'][index], 'label')
+    if keyExistsAndNotNull(fpDict, 'title'):
+        unescapeToVar(fpDict, 'title')
+    if keyExistsAndNotNull(fpDict, 'title_detail', 'value'):
+        unescapeToVar(fpDict['title_detail'], 'value')
     return fpDict
 
 def decodeRSS(rss):
