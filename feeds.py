@@ -29,6 +29,7 @@ class Item(object):
         self.description = ''
         self.link = ''
         self.author = ''
+        self.categories = []
         self.read = False
     @property
     def time_since(self):
@@ -136,6 +137,7 @@ class Feed(object):
             item.description = util.format(util.get(entry, 'description', ''), settings.POPUP_BODY_LENGTH)
             item.link = util.get(entry, 'link', '')
             item.author = util.format(util.get(entry, 'author', '')) # TODO: max length
+            item.categories = util.get(entry, 'tags', [])
             if all(filter.filter(item) for filter in filters):
                 result.append(item)
         self.clean_cache(settings.FEED_CACHE_SIZE)

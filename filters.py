@@ -8,6 +8,7 @@ TITLE = 1
 LINK = 2
 AUTHOR = 4
 CONTENT = 8
+CATEGORY = 16
 
 TYPES = {
     None: INCLUDE,
@@ -21,6 +22,7 @@ QUALIFIERS = {
     'link:': LINK,
     'author:': AUTHOR,
     'content:': CONTENT,
+    'category:': CATEGORY,
 }
 
 TYPE_STR = {
@@ -34,6 +36,7 @@ QUALIFIER_STR = {
     LINK: 'link',
     AUTHOR: 'author',
     CONTENT: 'content',
+    CATEGORY: 'category',
 }
 
 class Rule(object):
@@ -51,6 +54,12 @@ class Rule(object):
             strings.append(item.author)
         if self.qualifier & CONTENT:
             strings.append(item.description)
+        if self.qualifier & CATEGORY:
+            if item.categories:
+                for category_item in item.categories:
+                    if category_item:
+                        if 'term' in category_item:
+                            strings.append(category_item['term'])
         text = '\n'.join(strings)
         word = self.word
         if ignore_case:
@@ -113,6 +122,7 @@ tokens = [
     'LINK',
     'AUTHOR',
     'CONTENT',
+    'CATEGORY',
     'WORD',
 ] + reserved.values()
 
@@ -136,7 +146,11 @@ def t_AUTHOR(t):
 def t_CONTENT(t):
     r'content:'
     return t
-    
+
+def t_CATEGORY(t):
+    r'category:'
+    return t
+
 def t_WORD(t):
     r'(\'[^\']+\') | (\"[^\"]+\") | ([^ \n\t\r+\-()\'"]+)'
     t.type = reserved.get(t.value, 'WORD')
@@ -197,6 +211,7 @@ def p_qualifier(t):
                  | LINK 
                  | AUTHOR 
                  | CONTENT
+                 | CATEGORY
                  | empty'''
     t[0] = t[1]
     
